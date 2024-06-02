@@ -1,10 +1,12 @@
 
 # ToKnow
+
 - **Data6.packet** Data from a full day, it was analyzed and no ilicit behaviour was found. Each device has a static IPV4
 - **test6.packet** Data from a full day where there might contain ilicit behaviour like a **botnet** (A botnet is a group of Internet-connected devices, each of which runs one or more bots. Botnets can be used to perform Distributed Denial-of-Service attacks, steal data, send spam, and allow the attacker to access the device and its connection), **data exfiltration** and remote **C&C of devices** (Command and controll)
 - **Servers6.paquet** data from a fully day of external access to corp servers(200.0.0.0/24)
 
 # TODO
+
 Tasks:
 - Analysis of the non-anomalous behaviors; identify internal server/services, describe and quantify
 traffic exchanges from internal users with internal and external servers, and describe and quantify
@@ -16,7 +18,9 @@ corporate public services in an anomalous way. (6 points).
 - Written report; structure and content (4 pointsCommand and controll)
 - **Servers6.paquet** data from a fully day of external access to corp servers(200.0.0.0/24)
 
+
 # TODO
+
 Tasks:
 - Analysis of the non-anomalous behaviors; identify internal server/services, describe and quantify
 traffic exchanges from internal users with internal and external servers, and describe and quantify
