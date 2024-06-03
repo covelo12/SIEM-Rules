@@ -41,15 +41,13 @@ Num_external_conns_test = test['dst_ip'].apply(lambda x: not isInternal(x)).sum(
 
 plt.figure(figsize=(12, 6))
 plt.bar(['data', 'test'], [Num_internal_conns_data, Num_internal_conns_test])
-plt.title('Number of Internal and External Connections')
+plt.title('Number of Internal Connections')
 plt.ylabel('Number of Connections')
 
 plt.figure(figsize=(12, 6))
 plt.bar(['data', 'test'], [Num_external_conns_data, Num_external_conns_test])
-plt.title('Number of Internal and External Connections')
+plt.title('Number of External Connections')
 plt.ylabel('Number of Connections')
-
-print(data)
 
 upS_data=data.loc[((data['port']==443))].groupby(['src_ip'])['up_bytes'].sum().sort_values(ascending=False).nlargest(10)
 upS_test=data.loc[((test['port']==443))].groupby(['src_ip'])['up_bytes'].sum().sort_values(ascending=False).nlargest(10)

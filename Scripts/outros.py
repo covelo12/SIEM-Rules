@@ -56,7 +56,7 @@ plt.xlabel('Protocol')
 plt.ylabel('Bytes')
 plt.legend(['Uploaded Bytes', 'Downloaded Bytes'])
 plt.tight_layout()
-plt.savefig('bytes_per_portocol.png')
+plt.savefig('img/bytes_per_portocol.png')
 
 ###############################
 ## Plot the data for port 443 ##
@@ -68,7 +68,7 @@ plt.xlabel('Protocol')
 plt.ylabel('Bytes')
 plt.legend(['Uploaded Bytes', 'Downloaded Bytes'])
 plt.tight_layout()
-plt.savefig('bytes_per_port_443.png')
+plt.savefig('img/bytes_per_port_443.png')
 
 ##############################
 ## Plot the data for port 53 ##
@@ -80,7 +80,7 @@ plt.xlabel('Protocol')
 plt.ylabel('Bytes')
 plt.legend(['Uploaded Bytes', 'Downloaded Bytes'])
 plt.tight_layout()
-plt.savefig('bytes_per_port_53.png')
+plt.savefig('img/bytes_per_port_53.png')
 
 #############################
 ## Plot Int vs Ext conns ####
@@ -89,7 +89,7 @@ plt.figure(figsize=(12, 6))
 plt.bar(['Internal', 'External'], [Num_internal_conns, Num_external_conns])
 plt.title('Number of Internal and External Connections')
 plt.ylabel('Number of Connections')
-plt.savefig('Internal_vs_External.png')
+plt.savefig('img/Internal_vs_External.png')
 
 #############################
 ## Plot data for IPs ###
@@ -98,7 +98,7 @@ plt.figure(figsize=(12, 6))
 bytes_per_ip.plot(kind='bar', stacked=True)
 plt.title('Total Bytes Transferred for Ip')
 plt.ylabel('Number of Connections')
-plt.savefig('bytes_per_ip.png')
+plt.savefig('img/bytes_per_ip.png')
 
 
 #############################
@@ -111,4 +111,4 @@ plt.xlabel('Country')
 plt.ylabel('Number of Connections')
 plt.xticks(rotation=45)
 plt.tight_layout()
-plt.savefig('bytes_per_country.png')
+plt.savefig('img/bytes_per_country.png')
