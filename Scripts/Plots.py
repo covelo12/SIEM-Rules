@@ -68,21 +68,16 @@ def timeFrame(data=data,test=test):
     # Convert timestamp differences from units of 1/100th of a second to seconds
     data['time_diff'] = data['time_diff'] / 100
     # Calculate the average time difference for each IP
-    average_time_btw_requests = data.groupby('src_ip')['time_diff'].mean()
-    # Display the results (you can choose to display the entire DataFrame or specific columns)
-    small_data = average_time_btw_requests.nsmallest(10)
-
+    average_time_btw_requests_data = data.groupby('src_ip')['time_diff'].mean()
 
     # Create a new column to store the time difference between requests for each IP
     test['time_diff'] = test.groupby('src_ip')['timestamp'].diff()
     # Convert timestamp differences from units of 1/100th of a second to seconds
     test['time_diff'] = test['time_diff'] / 100
     # Calculate the average time difference for each IP
-    average_time_btw_requests = test.groupby('src_ip')['time_diff'].mean()
-    # Display the results (you can choose to display the entire DataFrame or specific columns)
-    small_test = average_time_btw_requests.nsmallest(10)
+    average_time_btw_requests_test = test.groupby('src_ip')['time_diff'].mean()
     # Merge the two dataframes on country code
-    merged_data = pd.merge(small_data, small_test, on='src_ip', suffixes=('_data', '_test'),  how='outer')
+    merged_data = pd.merge(average_time_btw_requests_data, average_time_btw_requests_test, on='src_ip', suffixes=('_data', '_test'),  how='outer').nsmallest(10, "time_diff_test")
     merged_data = merged_data.fillna(0)
 
     plt.figure(figsize=(12, 6))
@@ -155,11 +150,11 @@ def compIpBytes(data=data,test=test):
     plt.tight_layout()
     plt.savefig('img/up_bytes_ip.png')
 
-    down_data = data.groupby('src_ip')['down_bytes'].sum().nlargest(10)
-    down_test = test.groupby('src_ip')['down_bytes'].sum().nlargest(10)
+    down_data = data.groupby('src_ip')['down_bytes'].sum()
+    down_test = test.groupby('src_ip')['down_bytes'].sum()
 
     # Merge the two dataframes on country code
-    merged_data = pd.merge(down_data, down_test, on='src_ip', suffixes=('_data', '_test'),  how='outer')
+    merged_data = pd.merge(down_data, down_test, on='src_ip', suffixes=('_data', '_test'),  how='outer').nlargest(10, "down_bytes_test")
     merged_data = merged_data.fillna(0)
 
     # Convert the columns back to integer type
@@ -176,4 +171,4 @@ def compIpBytes(data=data,test=test):
     plt.tight_layout()
     plt.savefig('img/down_bytes_ip.png')
 
-data_per_port(test)
+compIpBytes(data, test)
