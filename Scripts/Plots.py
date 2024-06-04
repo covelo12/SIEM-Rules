@@ -31,32 +31,99 @@ def CountryFromIP(ip):
 ###################################
 ######## PORT VS BYTES ############
 ###################################
-def data_per_port(data=data):
-    bytes_per_port = data.groupby(['proto'])[['up_bytes', 'down_bytes']].sum()
+def data_per_port(data=data, test=test):
+    bytes_per_porto_data = data.groupby("proto")[['up_bytes', 'down_bytes']].sum()
+    bytes_per_porto_test = test.groupby("proto")[['up_bytes', 'down_bytes']].sum()
 
-    plt.figure(figsize=(12, 6))
-    bytes_per_port.plot(kind='bar', stacked=True)
-    plt.title('Total Bytes Transferred per protocol')
-    plt.xlabel('Protocol')
-    plt.ylabel('Bytes')
-    plt.legend(['Uploaded Bytes', 'Downloaded Bytes'])
-    plt.tight_layout()
-    plt.savefig('img/bytes_per_portocol.png')
-
+    print("Data\n", bytes_per_porto_data)
+    print("Test\n", bytes_per_porto_test)
+#data_per_port()
 
 #############################
 ## Plot Int vs Ext conns ####
 #############################
-def data_int_ext(data=data):
+def data_int_ext(data=data, test=test):
 
     Num_internal_conns = data["dst_ip"].apply(lambda x:isInternal(x)).sum()
     Num_external_conns = data['dst_ip'].apply(lambda x: not isInternal(x)).sum()
+
+    print("Data")
+    print("External Connections", Num_external_conns)
+    print("Internal Connections", Num_internal_conns)
+
+    Num_internal_conns = test["dst_ip"].apply(lambda x:isInternal(x)).sum()
+    Num_external_conns = test['dst_ip'].apply(lambda x: not isInternal(x)).sum()
+
+    print("Test")
+    print("External Connections", Num_external_conns)
+    print("Internal Connections", Num_internal_conns)
 
     plt.figure(figsize=(12, 6))
     plt.bar(['Internal', 'External'], [Num_internal_conns, Num_external_conns])
     plt.title('Number of Internal and External Connections')
     plt.ylabel('Number of Connections')
     plt.savefig('img/Internal_vs_External.png')
+#data_int_ext()
+
+#############################
+## Plot Int vs Ext IP conns ####
+#############################
+def data_from_int_conn(data=data, test=test):
+
+    internal_conns_dst_data = data["dst_ip"].apply(lambda x:isInternal(x))
+    internal_conns_src_data = data['src_ip'].apply(lambda x:isInternal(x))
+    internal_conns_dst_test = test["dst_ip"].apply(lambda x:isInternal(x))
+    internal_conns_src_test = test['src_ip'].apply(lambda x:isInternal(x))
+
+    ip_num_conns_data = data[internal_conns_dst_data][internal_conns_src_data].groupby("dst_ip")["src_ip"].size()
+    ip_num_conns_test = test[internal_conns_dst_test][internal_conns_src_test].groupby("dst_ip")["src_ip"].size()
+
+    merged_data = pd.merge(ip_num_conns_data, ip_num_conns_test, on='dst_ip', suffixes=('_data', '_test'),  how='outer').nlargest(20, "src_ip_test")
+    merged_data = merged_data.fillna(0)
+
+    print(merged_data)
+#data_from_int_conn()
+
+#############################
+## Plot Int vs Ext IP conns ####
+#############################
+def data_to_int_conn(data=data, test=test):
+
+    internal_conns_dst_data = data["dst_ip"].apply(lambda x:isInternal(x))
+    internal_conns_src_data = data['src_ip'].apply(lambda x:isInternal(x))
+    internal_conns_dst_test = test["dst_ip"].apply(lambda x:isInternal(x))
+    internal_conns_src_test = test['src_ip'].apply(lambda x:isInternal(x))
+
+    ip_num_conns_data = data[internal_conns_dst_data][internal_conns_src_data].groupby("src_ip")["dst_ip"].size()
+    ip_num_conns_test = test[internal_conns_dst_test][internal_conns_src_test].groupby("src_ip")["dst_ip"].size()
+
+    merged_data = pd.merge(ip_num_conns_data, ip_num_conns_test, on='src_ip', suffixes=('_data', '_test'),  how='outer').nlargest(20, "dst_ip_test")
+    merged_data = merged_data.fillna(0)
+
+    print(merged_data)
+
+data_to_int_conn()
+
+
+#############################
+## Plot Int vs Ext IP conns ####
+#############################
+def data_to_external_conn(data=data, test=test):
+
+    external_conns_dst_data = data["dst_ip"].apply(lambda x:not isInternal(x))
+    internal_conns_src_data = data['src_ip'].apply(lambda x:isInternal(x))
+    external_conns_dst_test = test["dst_ip"].apply(lambda x:not isInternal(x))
+    internal_conns_src_test = test['src_ip'].apply(lambda x:isInternal(x))
+
+    ip_num_conns_data = data[external_conns_dst_data][internal_conns_src_data].groupby("src_ip")["dst_ip"].size()
+    ip_num_conns_test = test[external_conns_dst_test][internal_conns_src_test].groupby("src_ip")["dst_ip"].size()
+
+    merged_data = pd.merge(ip_num_conns_data, ip_num_conns_test, on='src_ip', suffixes=('_data', '_test'),  how='outer').nlargest(20, "dst_ip_test")
+    merged_data = merged_data.fillna(0)
+
+    print(merged_data)
+
+#data_to_external_conn()
 
 ############################
 ##### TimeFrame ############
@@ -88,6 +155,7 @@ def timeFrame(data=data,test=test):
     plt.legend(['Clean dataset', 'Anomalous dataset'])
     plt.tight_layout()
     plt.savefig('img/timeFrame.png')
+timeFrame()
 
 ##############################
 ###### Country VS Bytes ######
@@ -124,16 +192,17 @@ def compCountryBytes(data=data,test=test):
     plt.legend()
     plt.tight_layout()
     plt.savefig("img/down_bytes_countrys_10_largest.png")
+#compCountryBytes()
 
 #################################
 ########### IP VS BYTES #########
 #################################
 def compIpBytes(data=data,test=test):
-    up_data = data.groupby('src_ip')['up_bytes'].sum().nlargest(10).sort_values(ascending=False)
-    up_test = test.groupby('src_ip')['up_bytes'].sum().nlargest(10).sort_values(ascending=False)
+    up_data = data.groupby('src_ip')['up_bytes'].sum()
+    up_test = test.groupby('src_ip')['up_bytes'].sum()
 
     # Merge the two dataframes on country code
-    merged_data = pd.merge(up_data, up_test, on='src_ip', suffixes=('_data', '_test'),  how='outer')
+    merged_data = pd.merge(up_data, up_test, on='src_ip', suffixes=('_data', '_test'),  how='outer').nlargest(10, "up_bytes_test")
     merged_data = merged_data.fillna(0)
 
     # Convert the columns back to integer type
@@ -170,5 +239,10 @@ def compIpBytes(data=data,test=test):
     plt.legend(['Clean dataset', 'Anomalous dataset'])
     plt.tight_layout()
     plt.savefig('img/down_bytes_ip.png')
+#compIpBytes()
 
-compIpBytes(data, test)
+
+def suspected_ips(data=data, test=test):
+    print(server.groupby("dst_ip").sum())
+
+#suspected_ips()
