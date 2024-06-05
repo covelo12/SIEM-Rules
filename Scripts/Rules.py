@@ -28,6 +28,8 @@ def CountryFromIP(ip):
     return gi.country_code_by_addr(ip)
 
 
+
+# Bot net Activity
 def time_btw_requests():
 
     data['time_diff'] = data.groupby('src_ip')['timestamp'].diff()
@@ -53,10 +55,10 @@ def internal_conns():
 
     avg_internal_data = normal_internal.groupby(['src_ip', 'dst_ip']).size().mean()
     
-    avg_internal_test = normal_internal.groupby(['src_ip', 'dst_ip']).size()
+    avg_internal_test = test_internal.groupby(['src_ip', 'dst_ip']).size()
 
-    # ver quanto a mais da trgger
-    print(avg_internal_test[avg_internal_test > avg_internal_data * 3])
+    print("Average:", avg_internal_data)
+    print(avg_internal_test[avg_internal_test > avg_internal_data * 2])
 
 def internal_ip_conns():
     # Identify internal communications in normal and test datasets
@@ -71,44 +73,153 @@ def internal_ip_conns():
     avg_internal_data = normal_internal.groupby(['src_ip'])['dst_ip'].size().mean()
     avg_internal_test = test_internal.groupby(['src_ip'])['dst_ip'].size()
 
-    # ver quanto a mais da trgger
+    print("Average:", avg_internal_data)
     print(avg_internal_test[avg_internal_test > avg_internal_data * 2])
+
+def internal_external_conns():
+    # Identify internal communications in normal and test datasets
+    external_conns_dst_data = data["dst_ip"].apply(lambda x: not isInternal(x))
+    internal_conns_src_data = data['src_ip'].apply(lambda x: isInternal(x))
+    external_conns_dst_test = test["dst_ip"].apply(lambda x: not isInternal(x))
+    internal_conns_src_test = test['src_ip'].apply(lambda x: isInternal(x))
+
+    normal_internal = data[external_conns_dst_data & internal_conns_src_data]
+    test_internal = test[external_conns_dst_test & internal_conns_src_test]
+
+    avg_internal_data = normal_internal.groupby(['src_ip', 'dst_ip']).size().mean()
+    avg_internal_test = test_internal.groupby(['src_ip', 'dst_ip']).size()
+
+    print("Average:", avg_internal_data)
+    # N seii se é demais
+    print(avg_internal_test[avg_internal_test > avg_internal_data * 20 ])
+
+def internal_external_ip_conns():
+    # Identify internal communications in normal and test datasets
+    external_conns_dst_data = data["dst_ip"].apply(lambda x: not isInternal(x))
+    internal_conns_src_data = data['src_ip'].apply(lambda x: isInternal(x))
+    external_conns_dst_test = test["dst_ip"].apply(lambda x: not isInternal(x))
+    internal_conns_src_test = test['src_ip'].apply(lambda x: isInternal(x))
+
+    normal_internal = data[external_conns_dst_data & internal_conns_src_data]
+    test_internal = test[external_conns_dst_test & internal_conns_src_test]
+
+    avg_internal_data = normal_internal.groupby(['src_ip'])['dst_ip'].size().mean()
+    avg_internal_test = test_internal.groupby(['src_ip'])['dst_ip'].size()
+
+    print("Average:", avg_internal_data)
+    print(avg_internal_test[avg_internal_test > avg_internal_data * 2 ])
 
 
 def countrys_conns():
 
     # Extract country data for both data and test
-    data['country'] = data['dst_ip'].drop_duplicates().apply(lambda y: gi.country_code_by_addr(y)).to_frame(name='cc')
-    test['country'] = test['dst_ip'].drop_duplicates().apply(lambda y: gi.country_code_by_addr(y)).to_frame(name='cc')
+    data['country'] = data['dst_ip'].drop_duplicates().apply(lambda y: CountryFromIP(y)).to_frame(name='cc')
+    print(data["country"].unique())
+    test['country'] = test['dst_ip'].drop_duplicates().apply(lambda y: CountryFromIP(y)).to_frame(name='cc')
 
     # Group by country and sum the down_bytes for each country
-    country_traffic_data = data.groupby('country').size().mean()
-    print(country_traffic_data)
+    country_traffic_data = data.groupby('country').size()
     country_traffic_test = test.groupby('country').size()
 
-    # Existing countrys need to go up 3 times
-    print(country_traffic_test[country_traffic_test > country_traffic_data * 3])
+    # Reindex the data series to ensure they have the same indices
+    country_traffic_test_aligned = country_traffic_test.reindex(country_traffic_data.index, fill_value=0)
+
+    # Identify countries where the number of connections in the test set is more than twice the number in the original dataset
+    print(country_traffic_test_aligned[country_traffic_test_aligned > country_traffic_data * 2])
 
     countries_not_in_data = test[~test['country'].isin(data['country'])]['country'].unique()
 
+    country_traffic_data = data.groupby('country').size().mean()
+    print(country_traffic_data)
+    # Non Existing need to be above average
+    print(country_traffic_test[countries_not_in_data][country_traffic_test > country_traffic_data])
+countrys_conns()
+def countrys_up():
+
+    # Extract country data for both data and test
+    data['country'] = data['dst_ip'].drop_duplicates().apply(lambda y: CountryFromIP(y)).to_frame(name='cc')
+    test['country'] = test['dst_ip'].drop_duplicates().apply(lambda y: CountryFromIP(y)).to_frame(name='cc')
+
+    # Group by country and sum the down_bytes for each country
+    country_traffic_data = data.groupby('country')["up_bytes"].sum()
+    country_traffic_test = test.groupby('country')["up_bytes"].sum()
+
+    # Reindex the data series to ensure they have the same indices
+    country_traffic_test_aligned = country_traffic_test.reindex(country_traffic_data.index, fill_value=0)
+
+    # Identify countries where the number of connections in the test set is more than twice the number in the original dataset
+    print(country_traffic_test_aligned[country_traffic_test_aligned > country_traffic_data * 2])
+
+    countries_not_in_data = test[~test['country'].isin(data['country'])]['country'].unique()
+
+    country_traffic_data = data.groupby('country')["up_bytes"].sum().mean()
+    print(country_traffic_data)
     # Non Existing need to be above average
     print(country_traffic_test[countries_not_in_data][country_traffic_test > country_traffic_data])
 
+def countrys_down():
+
+    # Extract country data for both data and test
+    data['country'] = data['dst_ip'].drop_duplicates().apply(lambda y: CountryFromIP(y)).to_frame(name='cc')
+    test['country'] = test['dst_ip'].drop_duplicates().apply(lambda y: CountryFromIP(y)).to_frame(name='cc')
+
+    # Group by country and sum the down_bytes for each country
+    country_traffic_data = data.groupby('country')["down_bytes"].sum()
+    country_traffic_test = test.groupby('country')["down_bytes"].sum()
+
+    # Reindex the data series to ensure they have the same indices
+    country_traffic_test_aligned = country_traffic_test.reindex(country_traffic_data.index, fill_value=0)
+
+    # Identify countries where the number of connections in the test set is more than twice the number in the original dataset
+    print(country_traffic_test_aligned[country_traffic_test_aligned > country_traffic_data * 2])
+
+    countries_not_in_data = test[~test['country'].isin(data['country'])]['country'].unique()
+
+    country_traffic_data = data.groupby('country')["down_bytes"].sum().mean()
+    print(country_traffic_data)
+    # Non Existing need to be above average
+    print(country_traffic_test[countries_not_in_data][country_traffic_test > country_traffic_data])
+
+# Exfiltration
 
 def tcp_exfiltration():
-    # Filter data and test datasets to include only rows where the protocol is "tcp"
-    tcp_data_mean = data[data['proto'] == "tcp"]['up_bytes'].mean()
-    tcp_test_above_mean = test[(test['proto'] == "tcp") & (test['up_bytes'] > tcp_data_mean * 10)]
 
-    # Get the source IPs for each request in the test dataset where the up bytes exceed ten times the mean in the data dataset
-    source_ips = tcp_test_above_mean['src_ip'].unique()
+    tcp_data_mean = data[data['proto'] == "tcp"]['up_bytes'].mean()
+    
+    tcp_test_above_mean = test[(test['proto'] == "tcp") & (test['up_bytes'] > tcp_data_mean * 20)]
+    # Group by source IP and sum up the bytes
+    tcp_test_grouped = tcp_test_above_mean.groupby('src_ip')['up_bytes'].size()
 
     # Print the mean up bytes for the TCP protocol in the data dataset
     print("Mean up bytes for tcp in data:", tcp_data_mean)
+    print(tcp_test_grouped)
 
-    # Print the source IPs for each request in the test dataset that exceeds ten times the mean in the data dataset
-    for ip in source_ips:
-        print("Source IP:", ip)
 
-# Call the function
-tcp_exfiltration()
+def tcp_exfiltration_per_ip():
+    
+    tcp_data_mean = data[data['proto'] == "tcp"].groupby('src_ip')['up_bytes'].sum().mean()
+    tcp_test_above_mean = test[(test['proto'] == "tcp") & (test['up_bytes'] > tcp_data_mean)].groupby('src_ip')['up_bytes'].sum()
+
+    print(tcp_test_above_mean)
+
+
+## C&C
+def udp_cc():
+
+    udp_data_mean = data[data['proto'] == "udp"]['down_bytes'].mean()
+    
+    udp_test_above_mean = test[(test['proto'] == "udp") & (test['down_bytes'] > udp_data_mean * 2)]
+    # Group by source IP and sum up the bytes
+    udp_test_grouped = udp_test_above_mean.groupby('src_ip')['down_bytes'].size()
+
+    # Print the mean up bytes for the udp protocol in the data dataset
+    print("Mean up bytes for udp in data:", udp_data_mean)
+    print(udp_test_grouped)
+
+
+def udp_cc_per_ip():
+    
+    udp_data_mean = data[data['proto'] == "udp"].groupby('src_ip')['down_bytes'].sum().mean()
+    udp_test_above_mean = test[(test['proto'] == "udp") & (test['down_bytes'] > udp_data_mean)].groupby('src_ip')['down_bytes'].sum()
+
+    print(udp_test_above_mean)
