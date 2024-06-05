@@ -25,23 +25,32 @@ def isInternal(ip):
     return False 
 
 def CountryFromIP(ip):
-    return gi.country_code_by_addr(ip)
+    country = gi.country_code_by_addr(ip)
+    if country:
+        return country
+    return ip
 
 
+########### BotNet activities ###########
 
-# Bot net Activity
 def time_btw_requests():
 
+    # Get Time between requests
     data['time_diff'] = data.groupby('src_ip')['timestamp'].diff()
     data['time_diff'] = data['time_diff'] / 100
+
+    # Get the fastest human possible time
     average_time_btw_requests_data = data.groupby('src_ip')['time_diff'].mean().sort_values(ascending=True)[0]
-    print("average request time:", average_time_btw_requests_data)
+    print("\nAverage Time between requests:", average_time_btw_requests_data)
+    
     test['time_diff'] = test.groupby('src_ip')['timestamp'].diff()
     test['time_diff'] = test['time_diff'] / 100
-    ip_speed= test.groupby('src_ip')['time_diff'].mean()
+    average_time_btw_requests_test= test.groupby('src_ip')['time_diff'].mean()
 
-    print(ip_speed[ip_speed < average_time_btw_requests_data])
+    bot_speeds = average_time_btw_requests_test[average_time_btw_requests_test < average_time_btw_requests_data].to_frame(name='bot_speeds')
 
+    print("\nIps with bot request speeds:")
+    print(bot_speeds.to_string())
 
 def internal_conns():
     # Identify internal communications in normal and test datasets
@@ -58,7 +67,29 @@ def internal_conns():
     avg_internal_test = test_internal.groupby(['src_ip', 'dst_ip']).size()
 
     print("Average:", avg_internal_data)
-    print(avg_internal_test[avg_internal_test > avg_internal_data * 2])
+    print(avg_internal_test[avg_internal_test > avg_internal_data * 10])
+
+def internal_conns_context():
+    # Identify internal communications in normal and test datasets
+    internal_conns_dst_data = data["dst_ip"].apply(lambda x: isInternal(x))
+    internal_conns_src_data = data['src_ip'].apply(lambda x: isInternal(x))
+    internal_conns_dst_test = test["dst_ip"].apply(lambda x: isInternal(x))
+    internal_conns_src_test = test['src_ip'].apply(lambda x: isInternal(x))
+
+    normal_internal = data[internal_conns_dst_data & internal_conns_src_data]
+    test_internal = test[internal_conns_dst_test & internal_conns_src_test]
+
+    avg_normal_internal = normal_internal.groupby(['src_ip', 'dst_ip']).size().mean()
+    normal_internal = normal_internal.groupby(['src_ip', 'dst_ip']).size().to_frame("count")
+    test_internal = test_internal.groupby(['src_ip', 'dst_ip']).size().to_frame("count")
+
+    merged_df = pd.merge(test_internal, normal_internal, how='left', on=['src_ip', 'dst_ip'], suffixes=('_test', '_data'))
+    
+    print("Average Connections:", avg_normal_internal)
+    print("\nExisting Connections: ")
+    print(merged_df.loc[(merged_df["count_test"] > merged_df["count_data"] * 20)].to_string())
+    print("\nNew Connections: ")
+    print(merged_df.loc[(merged_df["count_data"].isna() &  (merged_df["count_test"] > avg_normal_internal))].to_string())
 
 def internal_ip_conns():
     # Identify internal communications in normal and test datasets
@@ -74,7 +105,29 @@ def internal_ip_conns():
     avg_internal_test = test_internal.groupby(['src_ip'])['dst_ip'].size()
 
     print("Average:", avg_internal_data)
-    print(avg_internal_test[avg_internal_test > avg_internal_data * 2])
+    print(avg_internal_test[avg_internal_test > avg_internal_data * 10])
+
+def internal_ip_conns_context():
+    # Identify internal communications in normal and test datasets
+    internal_conns_dst_data = data["dst_ip"].apply(lambda x: isInternal(x))
+    internal_conns_src_data = data['src_ip'].apply(lambda x: isInternal(x))
+    internal_conns_dst_test = test["dst_ip"].apply(lambda x: isInternal(x))
+    internal_conns_src_test = test['src_ip'].apply(lambda x: isInternal(x))
+
+    normal_internal = data[internal_conns_dst_data & internal_conns_src_data]
+    test_internal = test[internal_conns_dst_test & internal_conns_src_test]
+
+    avg_normal_internal = normal_internal.groupby('src_ip')['dst_ip'].size().mean()
+    normal_internal = normal_internal.groupby('src_ip')['dst_ip'].size().to_frame("count")
+    test_internal = test_internal.groupby('src_ip')['dst_ip'].size().to_frame("count")
+
+    merged_df = pd.merge(test_internal, normal_internal, how='left', on=['src_ip'], suffixes=('_test', '_data'))
+    
+    print("Average Connections per src ip: ", avg_normal_internal)
+    print("\nExisting Connections: ")
+    print(merged_df.loc[(merged_df["count_test"] > merged_df["count_data"] * 10)].to_string())
+    print("\nNew Connections: ")
+    print(merged_df.loc[(merged_df["count_data"].isna() &  (merged_df["count_test"] > avg_normal_internal))].to_string())
 
 def internal_external_conns():
     # Identify internal communications in normal and test datasets
@@ -93,6 +146,29 @@ def internal_external_conns():
     # N seii se é demais
     print(avg_internal_test[avg_internal_test > avg_internal_data * 20 ])
 
+
+def internal_external_conns_context():
+    # Identify internal communications in normal and test datasets
+    internal_conns_dst_data = data["dst_ip"].apply(lambda x: not isInternal(x))
+    internal_conns_src_data = data['src_ip'].apply(lambda x: isInternal(x))
+    internal_conns_dst_test = test["dst_ip"].apply(lambda x: not isInternal(x))
+    internal_conns_src_test = test['src_ip'].apply(lambda x: isInternal(x))
+
+    normal_internal = data[internal_conns_dst_data & internal_conns_src_data]
+    test_internal = test[internal_conns_dst_test & internal_conns_src_test]
+
+    avg_normal_internal = normal_internal.groupby(['src_ip', 'dst_ip']).size().mean()
+    normal_internal = normal_internal.groupby(['src_ip', 'dst_ip']).size().to_frame("count")
+    test_internal = test_internal.groupby(['src_ip', 'dst_ip']).size().to_frame("count")
+
+    merged_df = pd.merge(test_internal, normal_internal, how='left', on=['src_ip', 'dst_ip'], suffixes=('_test', '_data'))
+    
+    print("Average Connections:", avg_normal_internal)
+    print("\nExisting Connections: ")
+    print(merged_df.loc[(merged_df["count_test"] > merged_df["count_data"] * 50)].to_string())
+    print("\nNew Connections: ")
+    print(merged_df.loc[(merged_df["count_data"].isna() &  (merged_df["count_test"] > avg_normal_internal))].to_string())
+
 def internal_external_ip_conns():
     # Identify internal communications in normal and test datasets
     external_conns_dst_data = data["dst_ip"].apply(lambda x: not isInternal(x))
@@ -109,12 +185,32 @@ def internal_external_ip_conns():
     print("Average:", avg_internal_data)
     print(avg_internal_test[avg_internal_test > avg_internal_data * 2 ])
 
+def internal_external_ip_conns_context():
+    # Identify internal communications in normal and test datasets
+    internal_conns_dst_data = data["dst_ip"].apply(lambda x: not isInternal(x))
+    internal_conns_src_data = data['src_ip'].apply(lambda x: isInternal(x))
+    internal_conns_dst_test = test["dst_ip"].apply(lambda x: not isInternal(x))
+    internal_conns_src_test = test['src_ip'].apply(lambda x: isInternal(x))
+
+    normal_internal = data[internal_conns_dst_data & internal_conns_src_data]
+    test_internal = test[internal_conns_dst_test & internal_conns_src_test]
+
+    avg_normal_internal = normal_internal.groupby('src_ip')['dst_ip'].size().mean()
+    normal_internal = normal_internal.groupby('src_ip')['dst_ip'].size().to_frame("count")
+    test_internal = test_internal.groupby('src_ip')['dst_ip'].size().to_frame("count")
+
+    merged_df = pd.merge(test_internal, normal_internal, how='left', on=['src_ip'], suffixes=('_test', '_data'))
+    
+    print("Average Connections per src ip: ", avg_normal_internal)
+    print("\nExisting Connections: ")
+    print(merged_df.loc[(merged_df["count_test"] > merged_df["count_data"] * 10)].to_string())
+    print("\nNew Connections: ")
+    print(merged_df.loc[(merged_df["count_data"].isna() &  (merged_df["count_test"] > avg_normal_internal))].to_string())
 
 def countrys_conns():
 
     # Extract country data for both data and test
     data['country'] = data['dst_ip'].drop_duplicates().apply(lambda y: CountryFromIP(y)).to_frame(name='cc')
-    print(data["country"].unique())
     test['country'] = test['dst_ip'].drop_duplicates().apply(lambda y: CountryFromIP(y)).to_frame(name='cc')
 
     # Group by country and sum the down_bytes for each country
@@ -133,7 +229,27 @@ def countrys_conns():
     print(country_traffic_data)
     # Non Existing need to be above average
     print(country_traffic_test[countries_not_in_data][country_traffic_test > country_traffic_data])
-countrys_conns()
+
+def countrys_conns_context():
+
+    # Extract country data for both data and test
+    data['country'] = data['dst_ip'].drop_duplicates().apply(lambda y: CountryFromIP(y)).to_frame(name='cc')
+    test['country'] = test['dst_ip'].drop_duplicates().apply(lambda y: CountryFromIP(y)).to_frame(name='cc')
+
+    # Group by country and sum the down_bytes for each country
+    avg_country_traffic_data = data.groupby('country').size().mean()
+    country_traffic_data = data.groupby('country').size().to_frame("count")
+    country_traffic_test = test.groupby('country').size().to_frame("count")
+
+    merged_df = pd.merge(country_traffic_test, country_traffic_data, how='left', on=['country'], suffixes=('_test', '_data'))
+
+    print("Average Connections per country: ", avg_country_traffic_data)
+    print("\nExisting Connections: ")
+    print(merged_df.loc[(merged_df["count_test"] > merged_df["count_data"] * 2)].to_string())
+    print("\nNew Connections: ")
+    print(merged_df.loc[merged_df["count_data"].isna() & (merged_df["count_test"] > avg_country_traffic_data)].to_string())
+
+
 def countrys_up():
 
     # Extract country data for both data and test
@@ -179,7 +295,6 @@ def countrys_down():
     print(country_traffic_data)
     # Non Existing need to be above average
     print(country_traffic_test[countries_not_in_data][country_traffic_test > country_traffic_data])
-
 # Exfiltration
 
 def tcp_exfiltration():
@@ -214,7 +329,8 @@ def udp_cc():
 
     # Print the mean up bytes for the udp protocol in the data dataset
     print("Mean up bytes for udp in data:", udp_data_mean)
-    print(udp_test_grouped)
+
+    print(udp_test_grouped.to_string())
 
 
 def udp_cc_per_ip():
