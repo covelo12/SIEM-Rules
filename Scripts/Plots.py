@@ -102,7 +102,7 @@ def data_to_int_conn(data=data, test=test):
 
     print(merged_data)
 
-data_to_int_conn()
+#data_to_int_conn()
 
 
 #############################
@@ -155,7 +155,7 @@ def timeFrame(data=data,test=test):
     plt.legend(['Clean dataset', 'Anomalous dataset'])
     plt.tight_layout()
     plt.savefig('img/timeFrame.png')
-timeFrame()
+#timeFrame()
 
 ##############################
 ###### Country VS Bytes ######
@@ -243,6 +243,17 @@ def compIpBytes(data=data,test=test):
 
 
 def suspected_ips(data=data, test=test):
-    print(server.groupby("dst_ip").sum())
 
-#suspected_ips()
+    internal_conns_dst_data = data["dst_ip"].apply(lambda x: isInternal(x))
+    normal_internal = data[internal_conns_dst_data].groupby('dst_ip').size().to_frame("count")
+    print(normal_internal.nlargest(10, "count"))
+
+def suspected_ips1(data=data, test=test):
+
+    external_conns_dst_data = data["dst_ip"].apply(lambda x: not isInternal(x))
+    internal_conns_src_data = data["src_ip"].apply(lambda x: isInternal(x))
+    normal_internal = data[external_conns_dst_data & internal_conns_src_data].groupby('dst_ip').size().to_frame("count")
+    print(normal_internal.nlargest(20, "count"))
+
+suspected_ips1()
+
