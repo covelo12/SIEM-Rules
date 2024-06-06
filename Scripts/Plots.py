@@ -242,18 +242,10 @@ def compIpBytes(data=data,test=test):
 #compIpBytes()
 
 
-def suspected_ips(data=data, test=test):
+def internal_services(data=data, test=test):
 
     internal_conns_dst_data = data["dst_ip"].apply(lambda x: isInternal(x))
     normal_internal = data[internal_conns_dst_data].groupby('dst_ip').size().to_frame("count")
     print(normal_internal.nlargest(10, "count"))
 
-def suspected_ips1(data=data, test=test):
-
-    external_conns_dst_data = data["dst_ip"].apply(lambda x: not isInternal(x))
-    internal_conns_src_data = data["src_ip"].apply(lambda x: isInternal(x))
-    normal_internal = data[external_conns_dst_data & internal_conns_src_data].groupby('dst_ip').size().to_frame("count")
-    print(normal_internal.nlargest(20, "count"))
-
-suspected_ips1()
 
