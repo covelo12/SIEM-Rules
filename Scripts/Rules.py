@@ -24,9 +24,8 @@ def isInternal(ip):
 
 def CountryFromIP(ip):
     country = gi.country_code_by_addr(ip)
-    if country:
+    if not isInternal(ip):
         return country
-    return ip
 
 # Dictionary to count malicious IP occurrences
 malicious_ips_count = {}
@@ -196,8 +195,6 @@ def internal_external_ip_conns():
     # Update malicious IPs count
     update_malicious_ips_count(existing_conns.index.get_level_values('src_ip'), "Exfiltration")
     update_malicious_ips_count(new_conns.index.get_level_values('src_ip'), "Exfiltration")
-
-########### Additional Exfiltration Methods ###########
 
 def tcp_exfiltration():
     tcp_data_mean = data[data['proto'] == "tcp"]['up_bytes'].mean() * 2
