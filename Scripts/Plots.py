@@ -27,6 +27,8 @@ def isInternal(ip):
 def CountryFromIP(ip):
     return gi.country_code_by_addr(ip)
 
+def OrgFromIP(ip):
+    return gi2.org_by_addr(ip)
 
 ###################################
 ######## PORT VS BYTES ############
@@ -246,6 +248,154 @@ def internal_services(data=data, test=test):
 
     internal_conns_dst_data = data["dst_ip"].apply(lambda x: isInternal(x))
     normal_internal = data[internal_conns_dst_data].groupby('dst_ip').size().to_frame("count")
-    print(normal_internal.nlargest(10, "count"))
+    plt.figure(figsize=(12, 6))
+    normal_internal.nlargest(10, "count").plot(kind='bar', stacked=True)
+    plt.title('Internal Services')
+    plt.xlabel('IP')
+    plt.ylabel('Connections')
+    plt.tight_layout()
+    plt.savefig('./img/InternalServices.png')
+
+    var1 = normal_internal.nlargest(5, "count").index.tolist()
+    bytesInternalServices = data[data["dst_ip"].isin(var1)].groupby("dst_ip")[['up_bytes', 'down_bytes']].sum()
+    
+
+    plt.figure(figsize=(12, 6))
+    bytesInternalServices.plot(kind='bar', stacked=True)
+    plt.title('Internal Services')
+    plt.xlabel('IP')
+    plt.ylabel('Bytes')
+    plt.tight_layout()
+    plt.savefig('./img/InternalServicesBytes.png')
+
+def external_services(data=data,test=test):
+
+    External_conns_dst_data = data["dst_ip"].apply(lambda x: not isInternal(x))
+    normal_internal = data[External_conns_dst_data].groupby('dst_ip').size().to_frame("count")
+    plt.figure(figsize=(12, 6))
+    normal_internal.nlargest(20, "count").plot(kind='bar', stacked=True)
+    plt.title('External Services')
+    plt.xlabel('IP')
+    plt.ylabel('Connections')
+    plt.tight_layout()
+    plt.savefig('./img/ExternalServices.png')
+
+    var1 = normal_internal.nlargest(10, "count").index.tolist()
+    bytesInternalServices = data[data["dst_ip"].isin(var1)].groupby("dst_ip")[['up_bytes', 'down_bytes']].sum()
+
+    plt.figure(figsize=(12, 6))
+    bytesInternalServices.plot(kind='bar', stacked=True)
+    plt.title('Internal Services')
+    plt.xlabel('IP')
+    plt.ylabel('Bytes')
+    plt.tight_layout()
+    plt.savefig('./img/ExternalServicesBytes.png')
+    
+    
+
+##########################################################################
+############### Servers ##################################################
+##########################################################################
+def data_per_proto_server(server=server):
+    bytes_per_porto_data = server.groupby("proto")[['up_bytes', 'down_bytes']].sum()
+
+    plt.figure(figsize=(12, 6))
+    bytes_per_porto_data.plot(kind='bar', stacked=True)
+    plt.title('Server')
+    plt.xlabel('Protocol')
+    plt.ylabel('Bytes')
+    plt.tight_layout()
+    plt.savefig('./img/ServerProtocol.png')
+
+def conns_per_ip_ext(server=server):
+    cons_per_ipsrc=server.groupby("src_ip").sum()
+    
+    plt.figure(figsize=(12, 6))
+    cons_per_ipsrc.plot(kind='bar', stacked=True)
+    plt.title('Server')
+    plt.xlabel('IP')
+    plt.ylabel('Conns')
+    plt.tight_layout()
+    plt.savefig('./img/ServerConnsperIP.png')
+
+def serverCountry(data=server):
+    # Add country code based on dst_ip
+    data['country'] = data['src_ip'].drop_duplicates().apply(lambda y: gi.country_code_by_addr(y))
+
+    # Group by country and sum the down_bytes for each country
+    country_traffic = data.groupby('country')[['down_bytes',"up_bytes"]].sum().nlargest(10,"down_bytes")
+
+    print(country_traffic)
+    plt.figure(figsize=(12, 6))
+    country_traffic.plot(kind='bar', stacked=True)
+    plt.title('Server')
+    plt.xlabel('Country')
+    plt.ylabel('Bytes')
+    plt.tight_layout()
+    plt.savefig('./img/ServerCountriesIP.png')
 
 
+def data_per_port_server(server=server):
+    bytes_per_porto_data = server.groupby("port")[['up_bytes', 'down_bytes']].sum()
+
+    plt.figure(figsize=(12, 6))
+    bytes_per_porto_data.plot(kind='bar', stacked=True)
+    plt.title('Server')
+    plt.xlabel('Port')
+    plt.ylabel('Bytes')
+    plt.tight_layout()
+    plt.savefig('./img/ServerPort.png')
+
+def server_timeframe(server=server):
+    # Sort the data by src_ip and timestamp
+    server = server.sort_values(by=['src_ip', 'timestamp'])
+
+    # Calculate the time difference between consecutive communications for each src_ip
+    server['time_diff'] = server.groupby('src_ip')['timestamp'].diff()
+
+    # Filter out rows where the time difference is NaN (i.e., the first communication for each src_ip)
+    server = server.dropna(subset=['time_diff'])
+
+    server['rolling_sum'] = server.groupby('src_ip')['time_diff'].rolling(window=500).sum().reset_index(0, drop=True)
+     # Drop NaN values resulting from the rolling sum calculation
+    server = server.dropna(subset=['rolling_sum'])
+
+    # Group by src_ip and find the minimum rolling sum (minimum time to make 10 communications)
+    min_timeframes = server.groupby('src_ip')['rolling_sum'].min().reset_index().nsmallest(20,"rolling_sum")
+
+
+    # Plotting the results
+    plt.figure(figsize=(12, 6))
+    min_timeframes.set_index('src_ip')['rolling_sum'].plot(kind='bar')
+    plt.title('Minimum Timeframe to Make 500 Consecutive Communications for Each src_ip')
+    plt.xlabel('src_ip')
+    plt.ylabel('Time (ms)')
+    plt.tight_layout()
+    plt.savefig('img/server_timeframe_500_communications.png')
+
+def data_per_server(server=server):
+# Add country code based on dst_ip
+    server['org'] = server['src_ip'].drop_duplicates().apply(lambda y: gi2.org_by_addr(y))
+
+    # Group by country and sum the down_bytes for each country
+    country_traffic = server.groupby('org').count()
+
+    print(country_traffic)
+
+def data_per_hour(server=server):
+
+    server['day'] = server['timestamp'].dt.day()
+
+    # Group data by hour and sum up_bytes and down_bytes
+    hourly_traffic = server.groupby('day')[['up_bytes', 'down_bytes']].sum()
+
+    # Plot the data
+    plt.figure(figsize=(12, 6))
+    hourly_traffic.plot(kind='bar', stacked=True)
+    plt.title('Server Traffic per Hour')
+    plt.xlabel('Hour of the Day')
+    plt.ylabel('Bytes')
+    plt.xticks(rotation=0)  # Rotate x-axis labels for better readability
+    plt.tight_layout()
+    plt.savefig('img/server_traffic_per_hour.png')
+data_per_hour()
