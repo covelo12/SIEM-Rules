@@ -70,9 +70,9 @@ def internal_conns():
     
     print("Average Connections:", avg_normal_internal)
     print("\nExisting Connections: ")
-    print(merged_df.loc[(merged_df["count_test"] > merged_df["count_data"] * 20)].to_string())
+    print(merged_df.loc[(merged_df["count_test"] > merged_df["count_data"] * 30)].to_string())
     print("\nNew Connections: ")
-    print(merged_df.loc[(merged_df["count_data"].isna() &  (merged_df["count_test"] > avg_normal_internal))].to_string())
+    print(merged_df.loc[(merged_df["count_data"].isna() &  (merged_df["count_test"] > avg_normal_internal * 2))].to_string())
 
 def internal_ip_conns():
     # Identify internal communications in normal and test datasets
@@ -175,7 +175,7 @@ def tcp_exfiltration():
     
     print("Average Connections per src ip: ", avg_data_tcp)
     print("\nExisting Connections: ")
-    print(merged_df.loc[(merged_df["count_test"] > merged_df["count_data"] * 10)].to_string())
+    print(merged_df.loc[(merged_df["count_test"] > merged_df["count_data"] * 20)].to_string())
     print("\nNew Connections: ")
     print(merged_df.loc[(merged_df["count_data"].isna() &  (merged_df["count_test"] > avg_data_tcp))].to_string())
 
@@ -189,7 +189,7 @@ def tcp_exfiltration_per_ip():
     
     print("Average Connections per src ip: ", tcp_data_mean)
     print("\nExisting Connections: ")
-    print(merged_df.loc[(merged_df["count_test"] > merged_df["count_data"] * 10)].to_string())
+    print(merged_df.loc[(merged_df["count_test"] > merged_df["count_data"] * 20)].to_string())
     print("\nNew Connections: ")
     print(merged_df.loc[(merged_df["count_data"].isna() &  (merged_df["count_test"] > tcp_data_mean))].to_string())
 
@@ -255,7 +255,7 @@ def udp_cc():
     
     print("Average Connections per src ip: ", avg_data_udp)
     print("\nExisting Connections: ")
-    print(merged_df.loc[(merged_df["count_test"] > merged_df["count_data"])].to_string())
+    print(merged_df.loc[(merged_df["count_test"] > merged_df["count_data"] * 10)].to_string())
     print("\nNew Connections: ")
     print(merged_df.loc[(merged_df["count_data"].isna() &  (merged_df["count_test"] > avg_data_udp * 10))].to_string())
 
