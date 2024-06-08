@@ -195,11 +195,11 @@ def tcp_exfiltration_per_ip():
 
 def udp_exfiltration():
 
-    udp_data_mean = data[data['proto'] == "udp"]['up_bytes'].mean() * 2
+    udp_data_mean = data[data['proto'] == "udp"]['up_bytes'].mean()
 
-    avg_data_udp = data[(data['proto'] == "udp") & (data['down_bytes'] > udp_data_mean) ].groupby('src_ip')['up_bytes'].size().mean()
-    data_udp = data[(data['proto'] == "udp") & (data['down_bytes'] > udp_data_mean) ].groupby('src_ip')['up_bytes'].size().to_frame("count")
-    test_udp = test[(test['proto'] == "udp") & (test['down_bytes'] > udp_data_mean) ].groupby('src_ip')['up_bytes'].size().to_frame("count")
+    avg_data_udp = data[(data['proto'] == "udp") & (data['up_bytes'] > udp_data_mean) ].groupby('src_ip')['up_bytes'].size().mean()
+    data_udp = data[(data['proto'] == "udp") & (data['up_bytes'] > udp_data_mean) ].groupby('src_ip')['up_bytes'].size().to_frame("count")
+    test_udp = test[(test['proto'] == "udp") & (test['up_bytes'] > udp_data_mean) ].groupby('src_ip')['up_bytes'].size().to_frame("count")
     
     merged_df = pd.merge(test_udp, data_udp, how='left', on=['src_ip'], suffixes=('_test', '_data'))
     
